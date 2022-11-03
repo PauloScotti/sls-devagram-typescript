@@ -1,0 +1,15 @@
+{
+  "name": "sls-devagram-typescript",
+  "version": "1.0.0",
+  "description": "Código de estudo do curso de Arquitetura Servless Devaria 2022 - Réplica do Instagram (Devagram)",
+  "main": "handler.js",
+  "private": "true",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Paulo Roberto Scotti (Curso da Devaria)",
+  "devDependencies": {
+    "serverless-plugin-typescript": "^2.1.4",
+    "typescript": "^4.8.4"
+  }
+}
