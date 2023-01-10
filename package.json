@@ -16,6 +16,6 @@
   },
   "dependencies": {
     "amazon-cognito-identity-js": "^6.1.0",
-    "dynamoose": "^3.1.0"
+    "dynamoose": "^2.8.6"
   }
 }

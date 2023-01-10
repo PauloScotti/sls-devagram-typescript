@@ -21,7 +21,7 @@ provider:
       statements:
         - Effect: Allow
           Action:
-            - dynamobd:*
+            - dynamodb:*
           Resource:
             - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.userTableName}"
 
