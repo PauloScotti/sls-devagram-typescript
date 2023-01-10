@@ -6,6 +6,7 @@ import { ConfirmUserEmailRequest } from '../types/auth/ConfirmUserEmailRequest';
 import { DefaultJsonResponse, formatDefalutResponse } from '../utils/formatResponseUtils';
 import { UserModel } from '../models/UserModel';
 import { User } from '../types/models/User';
+import { parse } from 'aws-multipart-parser';
 
 export const register: Handler = async (event: APIGatewayEvent): Promise<DefaultJsonResponse> => {
     try {
@@ -22,27 +23,31 @@ export const register: Handler = async (event: APIGatewayEvent): Promise<Default
         if (!event.body) {
             return formatDefalutResponse(400, 'Parâmetros de entrada não informados');
         }
-        const request = JSON.parse(event.body) as UserRegisterRequest;
-        const { email, password, name } = request;
-        if (!email || !email.match(emailRegex)) {
-            return formatDefalutResponse(400, 'Email inválido');
-        }
-        if (!password || !password.match(passwordRegex)) {
-            return formatDefalutResponse(400, 'Senha inválida, senha deve conter pelo menos um caractér maiúsculo, minúsculo, numérico e especial, além de ter pelo menos oito dígitos.');
-        }
-        if (!name || name.trim().length < 2) {
-            return formatDefalutResponse(400, 'Nome inválido');
-        }
+        // const request = JSON.parse(event.body) as UserRegisterRequest;
+        // const { email, password, name } = request;
 
-        const cognitoUser = await new CognitoServices(USER_POOL_ID, USER_POOL_CLIENT_ID).signUp(email, password);
+        const formData = parse(event, true);
+        console.log('formData', formData);
 
-        const user = {
-            name,
-            email,
-            cognitoId: cognitoUser.userSub
-        } as User;
+        // if (!email || !email.match(emailRegex)) {
+        //     return formatDefalutResponse(400, 'Email inválido');
+        // }
+        // if (!password || !password.match(passwordRegex)) {
+        //     return formatDefalutResponse(400, 'Senha inválida, senha deve conter pelo menos um caractér maiúsculo, minúsculo, numérico e especial, além de ter pelo menos oito dígitos.');
+        // }
+        // if (!name || name.trim().length < 2) {
+        //     return formatDefalutResponse(400, 'Nome inválido');
+        // }
 
-        await UserModel.create(user);
+        // const cognitoUser = await new CognitoServices(USER_POOL_ID, USER_POOL_CLIENT_ID).signUp(email, password);
+
+        // const user = {
+        //     name,
+        //     email,
+        //     cognitoId: cognitoUser.userSub
+        // } as User;
+
+        // await UserModel.create(user);
         
         return formatDefalutResponse(200, 'Usuario cadastrado com sucesso, verifique seu email para confirmar o codigo!');
 
