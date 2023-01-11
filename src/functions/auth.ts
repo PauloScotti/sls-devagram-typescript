@@ -1,5 +1,5 @@
 import type { Handler, APIGatewayEvent } from 'aws-lambda';
-import { passwordRegex, emailRegex } from '../constants/Regexes';
+import { passwordRegex, emailRegex, imageExtensionsAllowed } from '../constants/Regexes';
 import { CognitoServices } from '../services/CognitoServices';
 import { UserRegisterRequest } from '../types/auth/UserRegisterRequest';
 import { ConfirmUserEmailRequest } from '../types/auth/ConfirmUserEmailRequest';
@@ -7,47 +7,66 @@ import { DefaultJsonResponse, formatDefalutResponse } from '../utils/formatRespo
 import { UserModel } from '../models/UserModel';
 import { User } from '../types/models/User';
 import { parse } from 'aws-multipart-parser';
+import { FileData } from 'aws-multipart-parser/dist/models';
+import { S3Service } from '../services/S3Services';
 
 export const register: Handler = async (event: APIGatewayEvent): Promise<DefaultJsonResponse> => {
     try {
-        const { USER_POOL_ID, USER_POOL_CLIENT_ID, USER_TABLE } = process.env;
+        const { USER_POOL_ID, USER_POOL_CLIENT_ID, USER_TABLE, AVATAR_BUCKET } = process.env;
 
         if (!USER_POOL_ID || !USER_POOL_CLIENT_ID) {
             return formatDefalutResponse(500, 'Cognito Environments não encontradas');
         }
 
         if (!USER_TABLE) {
-            return formatDefalutResponse(500, 'Tabela de usuário não informada');
+            return formatDefalutResponse(500, 'ENVs da tabela não informadas');
+        }
+
+        if (!AVATAR_BUCKET) {
+            return formatDefalutResponse(500, 'ENVs do bucket não informadas');
         }
 
         if (!event.body) {
             return formatDefalutResponse(400, 'Parâmetros de entrada não informados');
         }
-        // const request = JSON.parse(event.body) as UserRegisterRequest;
-        // const { email, password, name } = request;
 
         const formData = parse(event, true);
-        console.log('formData', formData);
+        const file = formData.file as FileData;
+        const name = formData.name as string;
+        const email = formData.email as string;
+        const password = formData.password as string;
 
-        // if (!email || !email.match(emailRegex)) {
-        //     return formatDefalutResponse(400, 'Email inválido');
-        // }
-        // if (!password || !password.match(passwordRegex)) {
-        //     return formatDefalutResponse(400, 'Senha inválida, senha deve conter pelo menos um caractér maiúsculo, minúsculo, numérico e especial, além de ter pelo menos oito dígitos.');
-        // }
-        // if (!name || name.trim().length < 2) {
-        //     return formatDefalutResponse(400, 'Nome inválido');
-        // }
+        if (!email || !email.match(emailRegex)) {
+            return formatDefalutResponse(400, 'Email inválido');
+        }
+        if (!password || !password.match(passwordRegex)) {
+            return formatDefalutResponse(400, 'Senha inválida, senha deve conter pelo menos um caractér maiúsculo, minúsculo, numérico e especial, além de ter pelo menos oito dígitos.');
+        }
+        if (!name || name.trim().length < 2) {
+            return formatDefalutResponse(400, 'Nome inválido');
+        }
 
-        // const cognitoUser = await new CognitoServices(USER_POOL_ID, USER_POOL_CLIENT_ID).signUp(email, password);
+        if(file && !imageExtensionsAllowed.exec(file.filename)) {
+            return formatDefalutResponse(400, 'Extensão informada do arquivo não é válida');
+        }
 
-        // const user = {
-        //     name,
-        //     email,
-        //     cognitoId: cognitoUser.userSub
-        // } as User;
+        const cognitoUser = await new CognitoServices(USER_POOL_ID, USER_POOL_CLIENT_ID).signUp(email, password);
 
-        // await UserModel.create(user);
+        let key = undefined;
+
+        if(file) {
+            key = await new S3Service().saveImage(AVATAR_BUCKET, 'avatar', file);
+
+        }
+
+        const user = {
+            name,
+            email,
+            cognitoId: cognitoUser.userSub,
+            avatar: key
+        } as User;
+
+        await UserModel.create(user);
         
         return formatDefalutResponse(200, 'Usuario cadastrado com sucesso, verifique seu email para confirmar o codigo!');
 
