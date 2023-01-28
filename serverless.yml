@@ -121,6 +121,14 @@ functions:
               method: put
               authorizer: serviceAuthorizer
 
+  postComent:
+    handler: src/functions/post.postComent
+    events:
+        - httpApi:
+              path: /coment/{postId}
+              method: put
+              authorizer: serviceAuthorizer
+
 resources:
   Resources:
     CognitoUserPool:

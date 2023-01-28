@@ -71,7 +71,7 @@ export const create: Handler = async (event: APIGatewayEvent): Promise<DefaultJs
 
 export const toggleLike: Handler = async (event: any): Promise<DefaultJsonResponse> => {
     try {
-        const { error } = validateEnvs(['POST_TABLE', 'POST_BUCKET']);
+        const { error } = validateEnvs(['POST_TABLE']);
 
         if (error) {
             return formatDefalutResponse(500, error);
@@ -115,5 +115,56 @@ export const toggleLike: Handler = async (event: any): Promise<DefaultJsonRespon
     } catch (e: any) {
         console.log('Error on toggle like post: ', e);
         return formatDefalutResponse(500, 'Erro ao curtir/descurtir a publicação: ' + e);
+    }
+}
+
+export const postComent: Handler = async (event: any): Promise<DefaultJsonResponse> => {
+    try {
+        const { error } = validateEnvs(['POST_TABLE']);
+
+        if (error) {
+            return formatDefalutResponse(500, error);
+        }
+
+        const userId = getUserIdFromEvent(event);
+
+        if (!userId) {
+            return formatDefalutResponse(400, 'Usuário não encontrado');
+        }
+
+        const user = await UserModel.get({ 'cognitoId': userId });
+
+        if (!user) {
+            return formatDefalutResponse(400, 'Usuário não encontrado');
+        }
+
+        const {postId} = event.pathParameters;
+        const post = await PostModel.get({id: postId});
+
+        if(!post) {
+            return formatDefalutResponse(400, 'Publicação não encontrada');
+        }
+
+        const request = JSON.parse(event.body);
+        const { coment } = request;
+
+        if(!coment || coment.length < 2) {
+            return formatDefalutResponse(400, 'Comentário não é válido');
+        }
+
+        const comentObj = {
+            userId,
+            userName: user.name,
+            date: moment().format(),
+            coment
+        }
+
+        post.coments.push(comentObj);
+        await PostModel.update(post);
+        return formatDefalutResponse(200, "Comentário adicionado com sucesso!");
+
+    } catch (e: any) {
+        console.log('Error on post coment: ', e);
+        return formatDefalutResponse(500, 'Erro ao comentar na publicação: ' + e);
     }
 }
