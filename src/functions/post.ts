@@ -168,3 +168,45 @@ export const postComent: Handler = async (event: any): Promise<DefaultJsonRespon
         return formatDefalutResponse(500, 'Erro ao comentar na publicação: ' + e);
     }
 }
+
+export const get: Handler = async (event: any): Promise<DefaultJsonResponse> => {
+    try {
+        const { error, POST_BUCKET } = validateEnvs(['POST_TABLE', 'POST_BUCKET']);
+
+        if (error) {
+            return formatDefalutResponse(500, error);
+        }
+
+        const userId = getUserIdFromEvent(event);
+
+        if (!userId) {
+            return formatDefalutResponse(400, 'Usuário não encontrado');
+        }
+
+        const user = await UserModel.get({ 'cognitoId': userId });
+
+        if (!user) {
+            return formatDefalutResponse(400, 'Usuário não encontrado');
+        }
+
+        const {postId} = event.pathParameters;
+
+        if (!postId) {
+            return formatDefalutResponse(400, 'Publicação não encontrada');
+        }
+
+        const post = await PostModel.get({id: postId});
+
+        if(!post) {
+            return formatDefalutResponse(400, 'Publicação não encontrada');
+        }
+
+        post.image = await new S3Service().getImageURL(POST_BUCKET, post.image);
+        
+        return formatDefalutResponse(200, undefined, post);
+
+    } catch (e: any) {
+        console.log('Error on get post by id: ', e);
+        return formatDefalutResponse(500, 'Erro ao buscar comentário por id: ' + e);
+    }
+}
