@@ -79,3 +79,35 @@ export const update: Handler = async (event: APIGatewayEvent): Promise<DefaultJs
         return formatDefalutResponse(500, 'Erro ao atualizar dados do usuário: ' + e);
     }
 }
+
+export const getUserById: Handler = async (event: any): Promise<DefaultJsonResponse> => {
+    try {
+        const { AVATAR_BUCKET, error } = validateEnvs(['USER_TABLE', 'AVATAR_BUCKET']);
+
+        if (error) {
+            return formatDefalutResponse(500, error);
+        }
+
+        const { userId } = event.pathParameters;
+
+        if (!userId) {
+            return formatDefalutResponse(400, 'Usuário não encontrado');
+        }
+
+        const user = await UserModel.get({ 'cognitoId': userId });
+        
+        if (!user) {
+            return formatDefalutResponse(400, 'Usuário não encontrado');
+        }
+
+        if (user.avatar) {
+            user.avatar = await new S3Service().getImageURL(AVATAR_BUCKET, user.avatar);
+        }
+
+        return formatDefalutResponse(200, undefined, user);
+
+    } catch (e: any) {
+        console.log('Error on get user by id: ', e);
+        return formatDefalutResponse(500, 'Erro ao buscar dados do usuário por id: ' + e);
+    }
+}
