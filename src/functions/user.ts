@@ -7,6 +7,7 @@ import { parse } from 'aws-multipart-parser';
 import { FileData } from 'aws-multipart-parser/dist/models';
 import { imageExtensionsAllowed } from '../constants/Regexes';
 import { validateEnvs } from '../utils/environmentsUtils';
+import { DefaultListPaginatedResponseMessage } from '../types/DefaultListPaginatedResponseMessage copy';
 
 export const me: Handler = async (event: APIGatewayEvent): Promise<DefaultJsonResponse> => {
     try {
@@ -109,5 +110,54 @@ export const getUserById: Handler = async (event: any): Promise<DefaultJsonRespo
     } catch (e: any) {
         console.log('Error on get user by id: ', e);
         return formatDefalutResponse(500, 'Erro ao buscar dados do usuário por id: ' + e);
+    }
+}
+
+export const searchUser: Handler = async (event: any): Promise<DefaultJsonResponse> => {
+    try {
+        const { AVATAR_BUCKET, error } = validateEnvs(['USER_TABLE', 'AVATAR_BUCKET']);
+
+        if (error) {
+            return formatDefalutResponse(500, error);
+        }
+
+        const { filter } = event.pathParameters;
+
+        if(!filter || filter.length < 3) {
+            return formatDefalutResponse(400, 'Filtro não informado: ' + error);
+        }
+
+        const {lastKey} = event.queryStringParameters || '';
+
+        const query = UserModel.scan()
+                    .where("name").contains(filter)
+                    .or().where("email").contains(filter);
+
+        if(lastKey) {
+            query.startAt({cognitoId:lastKey});
+        }
+
+        const result = await query.limit(5).exec();
+
+        const response = {} as DefaultListPaginatedResponseMessage;
+
+        if(result) {
+            response.count = result.count;
+            response.lastKey = result.lastKey;
+
+            for(const document of result) {
+                if(document && document.avatar) {
+                    document.avatar = await new S3Service().getImageURL(AVATAR_BUCKET, document.avatar);
+                }
+            }
+
+            response.data = result;
+        }
+
+        return formatDefalutResponse(200, undefined, response);
+
+    } catch (e: any) {
+        console.log('Error on search user by filter: ', e);
+        return formatDefalutResponse(500, 'Erro ao buscar usuário por nome ou e-mail: ' + e);
     }
 }
