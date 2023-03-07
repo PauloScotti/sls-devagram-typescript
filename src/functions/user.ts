@@ -7,7 +7,7 @@ import { parse } from 'aws-multipart-parser';
 import { FileData } from 'aws-multipart-parser/dist/models';
 import { imageExtensionsAllowed } from '../constants/Regexes';
 import { validateEnvs } from '../utils/environmentsUtils';
-import { DefaultListPaginatedResponseMessage } from '../types/DefaultListPaginatedResponseMessage copy';
+import { DefaultListPaginatedResponseMessage } from '../types/DefaultListPaginatedResponseMessage';
 
 export const me: Handler = async (event: APIGatewayEvent): Promise<DefaultJsonResponse> => {
     try {
