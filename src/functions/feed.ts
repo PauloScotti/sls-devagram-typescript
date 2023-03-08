@@ -27,7 +27,7 @@ export const findByUserId: Handler = async (event: any): Promise<DefaultJsonResp
             return formatDefalutResponse(400, 'Usuário não encontrado');
         }
 
-        const lastKey = (event.queryStringParameters || '') as FeedLastKeyRequest;
+        const lastKey = (event.queryStringParameters || null) as FeedLastKeyRequest;
 
         const query = PostModel.query({ 'userId': userId }).sort("descending");
 
@@ -35,8 +35,7 @@ export const findByUserId: Handler = async (event: any): Promise<DefaultJsonResp
             query.startAt(lastKey);
         }
 
-        const result = await query.limit(20).exec();
-
+        const result = await query.limit(10).exec();
         
         const response = {} as DefaultListPaginatedResponseMessage;
 
@@ -46,13 +45,15 @@ export const findByUserId: Handler = async (event: any): Promise<DefaultJsonResp
 
             for (const document of result) {
                 if (document && document.image) {
-                    const url = await new S3Service().getImageURL(POST_BUCKET, document.image);
-                    document.image = url;
+                    document.image = await new S3Service().getImageURL(POST_BUCKET, document.image);
                 }
             }
             response.data = result;
         }
+
+
         return formatDefalutResponse(200, undefined, response);
+        
     } catch (e) {
         console.log('Error on get user feed: ', e);
         return formatDefalutResponse(500, 'Erro ao buscar feed do usuário: ' + e);
@@ -89,7 +90,7 @@ export const feedHome: Handler = async (event: any): Promise<DefaultJsonResponse
             query.startAt({ id: lastKey });
         }
 
-        const result = await query.limit(20).exec();
+        const result = await query.limit(10).exec();
 
         const response = {} as DefaultListPaginatedResponseMessage;
 
@@ -99,8 +100,7 @@ export const feedHome: Handler = async (event: any): Promise<DefaultJsonResponse
 
             for (const document of result) {
                 if (document && document.image) {
-                    const url = await new S3Service().getImageURL(POST_BUCKET, document.image);
-                    document.image = url;
+                    document.image = await new S3Service().getImageURL(POST_BUCKET, document.image);
                 }
             }
             response.data = result;
